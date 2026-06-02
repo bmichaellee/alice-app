@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 
 const shapeMap = {
   triangle:  () => <polygon points="500,50 950,920 50,920" />,
@@ -27,30 +27,98 @@ const shapeMap = {
   },
 }
 
+// Lazily-created shared AudioContext (browsers only allow audio after a
+// user gesture — the first keypress counts).
+let audioCtx = null
+
+function playChime() {
+  try {
+    if (!audioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext
+      if (!Ctx) return
+      audioCtx = new Ctx()
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume()
+
+    const now = audioCtx.currentTime
+    // A soft, friendly two-note rise (C6 -> E6), gentle on the ears.
+    const gain = audioCtx.createGain()
+    gain.gain.setValueAtTime(0.0001, now)
+    gain.gain.exponentialRampToValueAtTime(0.12, now + 0.03)
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.7)
+    gain.connect(audioCtx.destination)
+
+    ;[1046.5, 1318.5].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator()
+      osc.type = 'sine'
+      osc.frequency.value = freq
+      osc.connect(gain)
+      osc.start(now + i * 0.09)
+      osc.stop(now + 0.7)
+    })
+  } catch {
+    // Audio is a nice-to-have; never let it break the app.
+  }
+}
+
 function isCssColor(str) {
   const s = new Option().style
   s.color = str
   return s.color !== ''
 }
 
+const IDLE_RESET_MS = 20000
+
 export default function App() {
   const [key, setKey] = useState('')
+  // Timestamp of the last keypress. The word stays on screen indefinitely;
+  // only the *next* keypress after a long pause starts a fresh string
+  // (Alice often types, admires it for a while, then starts over).
+  const lastKeyAt = useRef(0)
+  const [now, setNow] = useState(0)
 
   useEffect(() => {
     const handler = (e) => {
+      const t = Date.now()
+      const idle = t - lastKeyAt.current
+      lastKeyAt.current = t
+      setNow(t)
+
+      // After a long pause, a fresh letter clears the old word first.
+      const expired = idle >= IDLE_RESET_MS
+
       if (e.key === 'Escape' || e.key === 'Enter') {
         setKey('')
       } else if (e.key === ' ') {
-        setKey((prev) => prev.includes(' ') || prev === '' ? prev : prev + ' ')
+        setKey((prev) => {
+          const base = expired ? '' : prev
+          return base.includes(' ') || base === '' ? base : base + ' '
+        })
       } else if (e.key === 'Backspace') {
-        setKey((prev) => prev.slice(0, -1))
+        setKey((prev) => (expired ? '' : prev).slice(0, -1))
       } else if (/^[a-z0-9]$/i.test(e.key)) {
-        setKey((prev) => prev + e.key.toUpperCase())
+        setKey((prev) => (expired ? '' : prev) + e.key.toUpperCase())
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [])
+
+  // Tick a few times a second while a word is on screen, so the
+  // reset-countdown progress bar animates. Idle (no word) = no timer.
+  useEffect(() => {
+    if (!key) return
+    const id = setInterval(() => setNow(Date.now()), 100)
+    return () => clearInterval(id)
+  }, [key])
+
+  // Countdown bar stays hidden for the first half of the idle window, then
+  // appears "full" at the halfway mark and depletes over the second half.
+  const elapsed = now - lastKeyAt.current
+  const fraction = elapsed / IDLE_RESET_MS          // 0 -> 1 across the window
+  const barActive = key && fraction >= 0.5
+  // Remap [0.5, 1] -> [1, 0] so the bar reads full at the halfway point.
+  const resetRemaining = barActive ? Math.max(0, 1 - (fraction - 0.5) / 0.5) : 0
 
   const words = key.split(' ').filter(Boolean)
   const colorWord = words.find(w => isCssColor(w))
@@ -65,6 +133,15 @@ export default function App() {
   const Shape = shapeName ? shapeMap[shapeName] : null
 
   const isAlice = key.toLowerCase() === 'alice'
+
+  // Chime once when a typed word resolves to a shape (or "alice") — the
+  // reward moment. Only fires on the off->on transition, not every keystroke.
+  const rewardActive = Boolean(Shape || isAlice)
+  const wasRewardActive = useRef(false)
+  useEffect(() => {
+    if (rewardActive && !wasRewardActive.current) playChime()
+    wasRewardActive.current = rewardActive
+  }, [rewardActive])
 
   const bgShapes = useMemo(() => {
     if (!Shape && !isAlice) return []
@@ -96,6 +173,22 @@ export default function App() {
       transition: 'background 1s ease-in',
       overflow: 'hidden',
     }}>
+      {/* Subtle countdown bar: stays hidden while she's engaged, then fades
+          in at the halfway point and depletes over the back half of the
+          idle window — a gentle cue that the next keypress will start fresh. */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        height: '6px',
+        width: `${resetRemaining * 100}%`,
+        background: shapeColor || (colorWord ? '#fff' : 'rgba(255,255,255,0.6)'),
+        opacity: barActive ? 0.55 : 0,
+        borderRadius: '0 3px 3px 0',
+        transition: 'width 0.12s linear, opacity 0.6s ease',
+        pointerEvents: 'none',
+        zIndex: 2,
+      }} />
       {bgShapes.map((sh, i) => {
         const BgShape = shapeMap[sh.shapeName]
         return (
