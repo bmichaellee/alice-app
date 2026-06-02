@@ -1,16 +1,26 @@
-# React + Vite
+# Alice's Shape App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An interactive playground where you type to draw. Whatever you type appears big on screen, and certain words trigger shapes and colors in the background.
 
-Currently, two official plugins are available:
+🎨 **Live:** https://bmichaellee.github.io/alice-app/
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## How to play
 
-## React Compiler
+Just start typing — there's no input box, the whole page listens.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Type a shape name** to fill the background with it: `triangle`, `circle`, `oval`, `square`, `rectangle`, `diamond`, `pentagon`, `hexagon`, `octagon`, `star`, `heart`, `arrow`, `clover`.
+- **Type a color** (any CSS color name like `red`, `blue`, `aliceblue`) to wash the background in that color.
+- **Type two words** — a color *and* a shape, like `red star` — to draw filled shapes in that color over a dark background with a subtle matching tint.
+- **Type `alice`** for a surprise: every shape at once. 💜
+- **Backspace** edits, **Esc** or **Enter** clears the screen.
 
-## Expanding the ESLint configuration
+Shapes and background colors fade in gently as you type.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Develop
+
+```bash
+npm install
+npm run dev
+```
+
+Built with [React](https://react.dev) + [Vite](https://vite.dev). Pushing to `main` automatically builds and deploys to GitHub Pages via GitHub Actions.
