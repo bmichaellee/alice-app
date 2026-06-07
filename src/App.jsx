@@ -1,5 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 
+// A plus and a cross are the same symbol — a thick, symmetric cross filling the
+// viewBox — so both words map to this single visual.
+const crossShape = () => <polygon points="350,50 650,50 650,350 950,350 950,650 650,650 650,950 350,950 350,650 50,650 50,350 350,350" />
+
 const shapeMap = {
   triangle:  () => <polygon points="500,50 950,920 50,920" />,
   circle:    () => <circle cx="500" cy="500" r="460" />,
@@ -13,6 +17,8 @@ const shapeMap = {
   star:      () => <polygon points="500,50 606,354 928,361 671,556 765,864 500,680 235,864 329,556 72,361 394,354" />,
   heart:     () => <path d="M500,820 C200,620 30,420 30,270 C30,120 150,30 300,30 Q420,30 500,180 Q580,30 700,30 C850,30 970,120 970,270 C970,420 800,620 500,820 Z" />,
   arrow:     () => <polygon points="500,30 900,420 660,420 660,970 340,970 340,420 100,420" />,
+  cross:     crossShape,
+  plus:      crossShape,
   clover:    () => {
     const leaf = "M500,500 C200,480 100,300 200,160 C250,80 380,80 500,250 C620,80 750,80 800,160 C900,300 800,480 500,500 Z"
     return (
