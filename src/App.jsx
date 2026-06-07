@@ -67,7 +67,7 @@ function isCssColor(str) {
   return s.color !== ''
 }
 
-const IDLE_RESET_MS = 20000
+const IDLE_RESET_MS = 100000
 
 export default function App() {
   const [key, setKey] = useState('')
